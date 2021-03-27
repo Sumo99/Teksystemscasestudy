@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>Here are all of the books</h1>
+    <div th:each="Book : ${Books}">
+        <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}"></a>
+        <img th:src="${Book.getCover()} + ${fullString}">
+    </div>
+
+</body>
+</html>
