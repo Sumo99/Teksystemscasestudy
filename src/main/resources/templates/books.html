@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Books</title>
     <style>
         .book{
             float: left;
@@ -13,6 +13,12 @@
     </style>
 </head>
 <body>
+    <div th:if = "${username}">
+        <div th:insert="navbar_logged_in"></div>
+    </div>
+    <div th:unless="${username}">
+        <div th:insert="navbar"></div>
+    </div>
     <h1>Here are all of the books</h1>
     <div th:each="Book : ${Books}" class="book">
         <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}"></a>

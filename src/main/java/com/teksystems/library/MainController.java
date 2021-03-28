@@ -36,8 +36,30 @@ public class MainController {
         return "index";
     }
 
-    @RequestMapping("/books")
-    public String books(Model model){
+    @RequestMapping("/wishlist")
+    public String wishlist(Principal principal, Model model){
+        if(principal == null){
+            model.addAttribute("username", false);
+        }
+        model.addAttribute("username",true);
+        return "wishlist";
+    }
+
+    @RequestMapping("/Recomended")
+    public String recomended(Principal principal, Model model){
+        if(principal == null){
+            model.addAttribute("username", false);
+        }
+        model.addAttribute("username",true);
+        return "recomended";
+    }
+    @RequestMapping(value = {"/books","current"})
+    public String books(Principal principal,Model model){
+        if(principal == null){
+            model.addAttribute("username", false);
+        }
+        model.addAttribute("username",true);
+
         List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
         model.addAttribute("Books",allBooks);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
@@ -50,7 +72,12 @@ public class MainController {
     }
 
     @RequestMapping("/search")
-    public String search(@RequestParam String search_query, Model model){
+    public String search(@RequestParam String search_query, Model model, Principal principal){
+        if(principal == null){
+            model.addAttribute("username", false);
+        }
+        model.addAttribute("username",true);
+
         List<Book> matchingBooks = bookRepository.findBookByDescriptionContains(search_query);
         model.addAttribute("Books", matchingBooks);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");

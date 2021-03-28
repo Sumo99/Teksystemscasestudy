@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <script src="https://kit.fontawesome.com/0c436d239f.js" crossorigin="anonymous"></script>
     <style>
         ul {
             list-style-type: none;
@@ -38,6 +39,17 @@
             display: flex;
             justify-content: center;
         }
+        .search-submit{
+            font-family: 'Font Awesome\ 5 Free';
+            content: "\f061"; /* FontAwesome Unicode */
+            font-weight: 900;
+        }
+        .search{
+            position: absolute;
+            float: right;
+            top:20px;
+            right:30px;
+        }
     </style>
 </head>
 <body>
@@ -49,7 +61,11 @@
             <li><a href="current">Current books</a></li>
             <li><a href="Recomended">Recomended</a></li>
             <li><a href="settings">Settings</a></li>
-            <li style="float:right"><a class="active" href="search.html">Search</a></li>
+            <form class="search" action="/search">
+                <input type="text" name="search_query">
+                <input type="submit" class="search-submit"  value="&#xf002"/>
+                </button>
+            </form>
         </ul>
     </div>
 </ul>
