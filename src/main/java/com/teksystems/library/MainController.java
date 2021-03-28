@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.security.Principal;
 import java.util.List;
 
 @Controller
@@ -26,7 +27,12 @@ public class MainController {
     }
 
     @RequestMapping(value = {"/", "/home"})
-    public String index() {
+    public String index(Principal principal,Model model) {
+        if(principal == null){
+            model.addAttribute("username", false);
+            return "index";
+        }
+        model.addAttribute("username",true);
         return "index";
     }
 
@@ -42,10 +48,12 @@ public class MainController {
     public String login(String error,Model model){
         return "login";
     }
+
     @RequestMapping("/search")
     public String search(@RequestParam String search_query, Model model){
         List<Book> matchingBooks = bookRepository.findBookByDescriptionContains(search_query);
         model.addAttribute("Books", matchingBooks);
+        model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
         return "books";
     }
 

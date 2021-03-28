@@ -4,12 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        .book{
+            float: left;
+            background-color: #333;
+        }
+
+    </style>
 </head>
 <body>
     <h1>Here are all of the books</h1>
-    <div th:each="Book : ${Books}">
+    <div th:each="Book : ${Books}" class="book">
         <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}"></a>
+        <a th:href="${Book.getLink()}">
         <img th:src="${Book.getCover()} + ${fullString}">
+        </a>
     </div>
 
 </body>

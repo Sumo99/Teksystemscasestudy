@@ -9,7 +9,7 @@ import java.sql.Date;
 
 @Data
 @Entity
-@Table(name = " mroonga_books" )
+@Table(name = "mroonga_books" )
 
 public class Book {
     @Id

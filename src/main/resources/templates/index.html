@@ -1,12 +1,18 @@
 <!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Home</title>
 </head>
 <body>
-<H1>
-    Welcome Home!
+<div th:if = "${username}">
+    <div th:insert="navbar_logged_in"></div>
+</div>
+<div th:unless="${username}">
+    <div th:insert="navbar"></div>
+</div>
 </H1>
 </body>
 </html>
