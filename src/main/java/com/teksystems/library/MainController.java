@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -55,15 +56,29 @@ public class MainController {
     }
     @RequestMapping(value = {"/books","current"})
     public String books(Principal principal,Model model){
+
         if(principal == null){
             model.addAttribute("username", false);
         }
         model.addAttribute("username",true);
 
         List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
-        model.addAttribute("Books",allBooks);
+        List<List<Book>> booksByRow = splitBooks(allBooks);
+        model.addAttribute("Books",booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
         return "books";
+    }
+
+    private List<List<Book>> splitBooks(List<Book> allBooks){
+        int rowSize = 4;
+        List<List<Book>> booksByRows = new ArrayList<>();
+
+        //this code splits the list into sublists of size for easier rendering of bootstrap.
+        for(int i =0; i < allBooks.size(); i += rowSize){
+            int end = Math.min(allBooks.size(), i + rowSize);
+            booksByRows.add(allBooks.subList(i,end));
+        }
+        return booksByRows;
     }
 
     @RequestMapping("/login")
@@ -79,8 +94,12 @@ public class MainController {
         model.addAttribute("username",true);
 
         List<Book> matchingBooks = bookRepository.findBookByDescriptionContains(search_query);
-        model.addAttribute("Books", matchingBooks);
+        List<List<Book>> booksByRow = splitBooks(matchingBooks);
+
+        model.addAttribute("Search_query",search_query);
+        model.addAttribute("Books", booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
+
         return "books";
     }
 
