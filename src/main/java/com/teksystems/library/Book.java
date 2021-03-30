@@ -26,6 +26,7 @@ public class Book {
     public String publisher;
     public Date published_date;
     public int num_ratings;
+    public String username;
 
 
 }

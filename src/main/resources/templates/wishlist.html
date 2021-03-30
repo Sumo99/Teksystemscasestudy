@@ -45,7 +45,12 @@
 </div>
     <h1>Wishlist</h1>
 </div>
-
+<div>
+    <form class="wishlist-submit" action="/wishlist" method="post">
+        <input type="text" name="book">
+        <input type="submit" class="search-submit"/>
+    </form>
+</div>
 <div class="main">
         <div th:each="Book : ${book}" class="col-lg-3 book">
             <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}" class="book-link"></a>

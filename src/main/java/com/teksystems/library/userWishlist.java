@@ -1,12 +1,17 @@
 package com.teksystems.library;
 
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.sql.Date;
 
 @Data
 @Entity
+@Table(name = "userwishlist")
+@AllArgsConstructor
+@NoArgsConstructor
 
 public class userWishlist {
     @Id
@@ -24,6 +29,22 @@ public class userWishlist {
     public Date published_date;
     public int num_ratings;
 
-    private String username;
+    public String username;
 
+    public userWishlist(Book book, String username){
+        this.id = book.getId();
+        this.title = book.getTitle();
+        this.isbn = book.getIsbn();
+        this.cover = book.getCover();
+        this.description = book.getDescription();
+        this.collection = book.getCollection();
+        this.link = book.getLink();
+        this.rating = book.getRating();
+        this.page_num = book.getPage_num();
+        this.publisher = book.getPublisher();
+        this.published_date = book.getPublished_date();
+        this.num_ratings = book.getNum_ratings();
+        this.username = username;
+    }
 }
+

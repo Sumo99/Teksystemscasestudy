@@ -28,12 +28,15 @@ public class MainController {
     private BookRepository bookRepository;
     private AmazonRepository amz;
     private UserRepository userRepository;
+    private userWishlistRepository userWishlistRepository;
 
     @Autowired
-    MainController(BookRepository br, AmazonRepository amz, UserRepository userRepository){
+    MainController(BookRepository br, AmazonRepository amz, UserRepository userRepository,
+                   userWishlistRepository userWishlistRepository){
         this.userRepository = userRepository;
         this.bookRepository = br;
         this.amz = amz;
+        this.userWishlistRepository = userWishlistRepository;
     }
 
     @Bean
@@ -51,7 +54,37 @@ public class MainController {
         return "index";
     }
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
-    public String addBookToWishList(){
+    public String addBookToWishList(@RequestParam String book, Principal principal, Model model){
+
+        System.out.println("The user supplied book is "+ book);
+        RestTemplate restTemplate = new RestTemplate();
+        String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book+"&maxResults=1",String.class);
+        System.out.println("The output string is "+apiResult);
+
+        Map<String, Object> map = JsonFlattener.flattenAsMap(apiResult);
+
+        Book book1 = new Book();
+
+        book1.setIsbn((String) map.get("items[0].volumeInfo.industryIdentifiers[1].identifier"));
+        book1.setCover((String) map.getOrDefault("items[0].volumeInfo.imageLinks.thumbnail",""));
+        book1.setDescription((String) map.getOrDefault("items[0].volumeInfo.description",""));
+        book1.setCollection((String) map.getOrDefault("items[0].volumeInfo.categories[0]",""));
+        book1.setTitle((String) map.get("items[0].volumeInfo.title"));
+        book1.setLink((String) map.getOrDefault("items[0].accessInfo.webReaderLink", ""));
+        book1.setPage_num((Integer) map.getOrDefault("items[0].volumeInfo.pageCount",0));
+        book1.setRating( Float.valueOf(map.getOrDefault("items[0].volumeInfo.averageRating",0).toString()));
+        book1.setNum_ratings((Integer) map.getOrDefault("items[0].volumeInfo.ratingsCount",0));
+        book1.setPublisher((String) map.getOrDefault("items[0].volumeInfo.publisher","None"));
+
+        System.out.println(book1);
+        if(principal == null){
+            model.addAttribute("username", false);
+        }
+
+        model.addAttribute("username",true);
+        model.addAttribute("book", book1);
+        userWishlist wish = new userWishlist(book1, principal.getName());
+        userWishlistRepository.save(wish);
         return "wishlist";
     }
 
@@ -78,12 +111,12 @@ public class MainController {
 //        book1.setPublished_date( new Date(Integer.valueOf((String)map.get("items[0].volumeInfo.publishedDate"))) );
 //
 //        System.out.println(book1);
-//        if(principal == null){
-//            model.addAttribute("username", false);
-//        }
-//
-//        model.addAttribute("username",true);
-//        model.addAttribute("book", book1);
+        if(principal == null){
+            model.addAttribute("username", false);
+        }
+
+        model.addAttribute("username",true);
+        model.addAttribute("book", userWishlistRepository.findAllByUsername(principal.getName()));
 
         return "wishlist";
     }
@@ -96,6 +129,7 @@ public class MainController {
         model.addAttribute("username",true);
         return "recomended";
     }
+
     @RequestMapping(value = {"/books","current"})
     public String books(Principal principal,Model model){
 
