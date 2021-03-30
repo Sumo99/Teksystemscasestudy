@@ -21,9 +21,10 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
-public class MainController {
+public class MainController<T> {
 
     private BookRepository bookRepository;
     private AmazonRepository amz;
@@ -80,7 +81,6 @@ public class MainController {
         if(principal == null){
             model.addAttribute("username", false);
         }
-
         model.addAttribute("username",true);
         model.addAttribute("book", book1);
         userWishlist wish = new userWishlist(book1, principal.getName());
@@ -90,33 +90,26 @@ public class MainController {
 
     @RequestMapping("/wishlist")
     public String wishlist(Principal principal, Model model){
-
-        //        RestTemplate restTemplate = new RestTemplate();
-//        String book = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q=1984&maxResults=1",String.class);
-//
-//        Map<String, Object> map = JsonFlattener.flattenAsMap(book);
-//
-//        Book book1 = new Book();
-//
-//        book1.setIsbn((String) map.get("items[0].volumeInfo.industryIdentifiers[1].identifier"));
-//        book1.setCover((String) map.get("items[0].volumeInfo.imageLinks.thumbnail"));
-//        book1.setDescription((String) map.get("items[0].volumeInfo.description"));
-//        book1.setCollection((String) map.get("items[0].volumeInfo.categories[0]"));
-//        book1.setTitle((String) map.get("items[0].volumeInfo.title"));
-//        book1.setLink((String) map.get("items[0].accessInfo.webReaderLink"));
-//        book1.setPage_num((Integer) map.get("items[0].volumeInfo.pageCount"));
-//        book1.setRating( Float.valueOf(map.get("items[0].volumeInfo.averageRating").toString()));
-//        book1.setNum_ratings((Integer) map.get("items[0].volumeInfo.ratingsCount"));
-//        book1.setPublisher((String) map.get("items[0].volumeInfo.publisher"));
-//        book1.setPublished_date( new Date(Integer.valueOf((String)map.get("items[0].volumeInfo.publishedDate"))) );
-//
-//        System.out.println(book1);
         if(principal == null){
             model.addAttribute("username", false);
         }
+        List<Book> matchingBooks = bookRepository.getAllBy();
+        List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
 
+        List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
         model.addAttribute("username",true);
-        model.addAttribute("book", userWishlistRepository.findAllByUsername(principal.getName()));
+        model.addAttribute("book", splitBooks);
+        model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
+
+        for(Book book : matchingBooks){
+            List<userWishlist> titleMatch =
+                    allBooks.stream()
+                    .filter(a -> a.getTitle().equals(book.getTitle()))
+                    .collect(Collectors.toList());
+            allBooks.removeAll(titleMatch);
+        }
+        List<List<userWishlist>> splitWishlist = utilities.splitUsers(allBooks);
+        model.addAttribute("matchingBooks", splitWishlist);
 
         return "wishlist";
     }
@@ -139,25 +132,14 @@ public class MainController {
         model.addAttribute("username",true);
 
         List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
-        List<List<Book>> booksByRow = splitBooks(allBooks);
+        List<List<Book>> booksByRow = utilities.splitBooks(allBooks);
+
         model.addAttribute("Books",booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
         return "books";
     }
 
 
-
-    private List<List<Book>> splitBooks(List<Book> allBooks){
-        int rowSize = 4;
-        List<List<Book>> booksByRows = new ArrayList<>();
-
-        //this code splits the list into sublists of size for easier rendering of bootstrap.
-        for(int i =0; i < allBooks.size(); i += rowSize){
-            int end = Math.min(allBooks.size(), i + rowSize);
-            booksByRows.add(allBooks.subList(i,end));
-        }
-        return booksByRows;
-    }
 
     @RequestMapping("/login")
     public String login(String error,Model model){
@@ -172,7 +154,7 @@ public class MainController {
         model.addAttribute("username",true);
 
         List<Book> matchingBooks = bookRepository.findBookByDescriptionContains(search_query);
-        List<List<Book>> booksByRow = splitBooks(matchingBooks);
+        List<List<Book>> booksByRow = utilities.splitBooks(matchingBooks);
 
         model.addAttribute("Search_query",search_query);
         model.addAttribute("Books", booksByRow);

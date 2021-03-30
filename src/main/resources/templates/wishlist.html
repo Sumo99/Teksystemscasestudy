@@ -28,11 +28,14 @@
             left:50%;
             top: -15px;
         }
-        .search{
-            position: absolute;
-            float: right;
-            top: 10px;
-            right: 30px;
+        .other-books{
+            position: relative;
+            top: 250px;
+            left: -250px;
+        }
+        .unavailable-books{
+            position: relative;
+            top: 200px;
         }
     </style>
 </head>
@@ -52,12 +55,25 @@
     </form>
 </div>
 <div class="main">
-        <div th:each="Book : ${book}" class="col-lg-3 book">
+    <h1>Here are all of the books you can check out now!</h1>
+    <div class="row" th:each="bookSet : ${book}">
+        <div th:each="Book : ${bookSet}" class="col-lg-3 book" >
             <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}" class="book-link"></a>
             <a th:href="${Book.getLink()}">
                 <img th:src="${Book.getCover()} + ${fullString}" height="200" width="130" class="book-image">
             </a>
         </div>
+    </div>
+    <h1 class="unavailable-books">These books are not available at any library.</h1>
+
+    <div class="row" th:each="bookSet : ${matchingBooks}">
+        <div th:each="Book : ${bookSet}" class="col-lg-3 book other-books">
+                <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}" class="book-link"></a>
+                <a th:href="${Book.getLink()}">
+                    <img th:src="${Book.getCover()} " height="200" width="130" class="book-image">
+                </a>
+        </div>
+    </div>
 </div>
 </body>
 </html>
