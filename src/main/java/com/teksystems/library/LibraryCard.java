@@ -15,4 +15,5 @@ public class LibraryCard {
     @ManyToOne
     private Users users;
     private String county;
+    private String password;
 }

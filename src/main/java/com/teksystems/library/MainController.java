@@ -1,10 +1,11 @@
 package com.teksystems.library;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.github.wnameless.json.flattener.JsonFlattener;
-import org.apache.tomcat.util.json.JSONParser;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.json.JsonParser;
-import org.springframework.boot.json.JsonParserFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,9 +16,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 import java.security.Principal;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,33 +58,51 @@ public class MainController<T> {
     }
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
     public String addBookToWishList(@RequestParam String book, Principal principal, Model model){
-
-        System.out.println("The user supplied book is "+ book);
+        Configuration configuration = Configuration.defaultConfiguration()
+                .addOptions(Option.SUPPRESS_EXCEPTIONS);
         RestTemplate restTemplate = new RestTemplate();
-        String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book+"&maxResults=1",String.class);
-        System.out.println("The output string is "+apiResult);
+        String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book,String.class);
+        System.out.println(apiResult);
+        List<Book> apiBooks = new ArrayList<>();
 
-        Map<String, Object> map = JsonFlattener.flattenAsMap(apiResult);
+        List<Book> matchingBooks = bookRepository.getAllBy();
+        List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
+        List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
+        renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
-        Book book1 = new Book();
+        //the length will always be 10 because that is the default parameter
+        for(int i = 0; i< 10; i++){
 
-        book1.setIsbn((String) map.get("items[0].volumeInfo.industryIdentifiers[1].identifier"));
-        book1.setCover((String) map.getOrDefault("items[0].volumeInfo.imageLinks.thumbnail",""));
-        book1.setDescription((String) map.getOrDefault("items[0].volumeInfo.description",""));
-        book1.setCollection((String) map.getOrDefault("items[0].volumeInfo.categories[0]",""));
-        book1.setTitle((String) map.get("items[0].volumeInfo.title"));
-        book1.setLink((String) map.getOrDefault("items[0].accessInfo.webReaderLink", ""));
-        book1.setPage_num((Integer) map.getOrDefault("items[0].volumeInfo.pageCount",0));
-        book1.setRating( Float.valueOf(map.getOrDefault("items[0].volumeInfo.averageRating",0).toString()));
-        book1.setNum_ratings((Integer) map.getOrDefault("items[0].volumeInfo.ratingsCount",0));
-        book1.setPublisher((String) map.getOrDefault("items[0].volumeInfo.publisher","None"));
+            Book bookApiResponse = new Book();
+            bookApiResponse.setTitle(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.title"));
+            bookApiResponse.setDescription(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i)+ "].volumeInfo.description"));
+            bookApiResponse.setPublisher(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.publisher"));
+            bookApiResponse.setCover(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.imageLinks.smallThumbnail"));
+            bookApiResponse.setIsbn(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.industryIdentifiers[0].identifier"));
+            bookApiResponse.setCollection(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.categories[0]"));
+            bookApiResponse.setPage_num(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.pageCount"));
 
-        System.out.println(book1);
+            bookApiResponse.setRating(Float.valueOf(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating") == null ? 0 :
+                     JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating", Float.class)));
+            bookApiResponse.setNum_ratings(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) + "].volumeInfo.ratingsCount"));
+            bookApiResponse.setLink(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.previewLink"));
+
+            System.out.println(bookApiResponse.toString());
+            apiBooks.add(bookApiResponse);
+        }
+
+        System.out.println("The total length of the book list is "+apiBooks.size());
+        System.out.println("The first book is " + apiBooks.get(0));
+        Book book1 = apiBooks.get(0);
+
         if(principal == null){
             model.addAttribute("username", false);
         }
         model.addAttribute("username",true);
-        model.addAttribute("book", book1);
+        model.addAttribute("book", apiBooks);
+        System.out.println(book1.toString());
+        System.out.println("The user we are saving for is "+principal.getName());
+
         userWishlist wish = new userWishlist(book1, principal.getName());
         userWishlistRepository.save(wish);
         return "wishlist";
@@ -93,11 +113,18 @@ public class MainController<T> {
         if(principal == null){
             model.addAttribute("username", false);
         }
+
         List<Book> matchingBooks = bookRepository.getAllBy();
         List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
 
         List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
         model.addAttribute("username",true);
+        renderWishlist(model, matchingBooks, allBooks, splitBooks);
+
+        return "wishlist";
+    }
+
+    private void renderWishlist(Model model, List<Book> matchingBooks, List<userWishlist> allBooks, List<List<Book>> splitBooks) {
         model.addAttribute("book", splitBooks);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
 
@@ -110,8 +137,6 @@ public class MainController<T> {
         }
         List<List<userWishlist>> splitWishlist = utilities.splitUsers(allBooks);
         model.addAttribute("matchingBooks", splitWishlist);
-
-        return "wishlist";
     }
 
     @RequestMapping("/Recomended")
