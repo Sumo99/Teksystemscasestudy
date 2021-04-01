@@ -1,7 +1,5 @@
 package com.teksystems.library;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.github.wnameless.json.flattener.JsonFlattener;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
@@ -11,22 +9,27 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.web.client.RestTemplate;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 
+import javax.validation.*;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
 
 @Controller
 public class MainController<T> {
+    private static Validator validator;
 
     private BookRepository bookRepository;
     private AmazonRepository amz;
@@ -56,13 +59,18 @@ public class MainController<T> {
         model.addAttribute("username",true);
         return "index";
     }
+
+    @RequestMapping(value = "/addbook", method = RequestMethod.POST)
+    public String addBook(){
+        return "";
+    }
+
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
     public String addBookToWishList(@RequestParam String book, Principal principal, Model model){
         Configuration configuration = Configuration.defaultConfiguration()
                 .addOptions(Option.SUPPRESS_EXCEPTIONS);
         RestTemplate restTemplate = new RestTemplate();
         String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book,String.class);
-        System.out.println(apiResult);
         List<Book> apiBooks = new ArrayList<>();
 
         List<Book> matchingBooks = bookRepository.getAllBy();
@@ -70,8 +78,8 @@ public class MainController<T> {
         List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
-        //the length will always be 10 because that is the default parameter
-        for(int i = 0; i< 10; i++){
+        int length = JsonPath.parse(apiResult).read("");
+        for(int i = 0; i< length; i++){
 
             Book bookApiResponse = new Book();
             bookApiResponse.setTitle(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.title"));
@@ -99,7 +107,7 @@ public class MainController<T> {
             model.addAttribute("username", false);
         }
         model.addAttribute("username",true);
-        model.addAttribute("book", apiBooks);
+        model.addAttribute("book", utilities.splitBooks(apiBooks));
         System.out.println(book1.toString());
         System.out.println("The user we are saving for is "+principal.getName());
 
@@ -197,7 +205,22 @@ public class MainController<T> {
     public String register(){return "register";}
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public String addUser(Users users, Model model){
+    public String addUser(@Valid Users users, BindingResult bindingResult, Model model){
+        String errorMsg = "";
+        if(bindingResult.hasErrors()){
+            System.out.println("The user has entered invalid data!");
+            for (Object object: bindingResult.getAllErrors()){
+                if(object instanceof FieldError) {
+                    FieldError fieldError = (FieldError) object;
+
+                    errorMsg += fieldError.getDefaultMessage() +"\n";
+                }
+
+            }
+            System.out.println("The user validation errors are "+errorMsg);
+            model.addAttribute("error",errorMsg);
+            return "register";
+        }
         if(userRepository.findByUsername(users.getUsername()) != null){
             String usernameError = String.format("The username %s already exists, please try another one", users.getUsername());
             model.addAttribute("error", usernameError);
