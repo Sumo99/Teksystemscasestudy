@@ -11,25 +11,23 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.view.RedirectView;
 
 
 import javax.validation.*;
 import java.security.Principal;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
-
 
 @Controller
 public class MainController<T> {
-    private static Validator validator;
 
     private BookRepository bookRepository;
     private AmazonRepository amz;
@@ -61,8 +59,23 @@ public class MainController<T> {
     }
 
     @RequestMapping(value = "/addbook", method = RequestMethod.POST)
-    public String addBook(){
-        return "";
+    public RedirectView addBook(@RequestParam String title, @RequestParam String isbn, @RequestParam(required = false) String link,
+                                @RequestParam String cover, @RequestParam String description, @RequestParam(required = false) String collection,
+                                @RequestParam Float rating, @RequestParam(required = false) Integer num_ratings,
+                                @RequestParam(required = false) Integer page_num, @RequestParam String publisher, Principal principal){
+        Book userBook = new Book();
+        userBook.setLink(link);
+        userBook.setRating(rating);
+        userBook.setCollection(collection);
+        userBook.setNum_ratings(num_ratings);
+        userBook.setDescription(description);
+        userBook.setTitle(title);
+        userBook.setIsbn(isbn);
+        userBook.setPublisher(publisher);
+        userBook.setPage_num(page_num);
+        userBook.setCover(cover);
+        userWishlistRepository.save(new userWishlist(userBook, principal.getName()));
+        return new RedirectView("wishlist");
     }
 
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
@@ -78,7 +91,7 @@ public class MainController<T> {
         List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
-        int length = JsonPath.parse(apiResult).read("");
+        int length = JsonPath.parse(apiResult).read("$.items.length()");
         for(int i = 0; i< length; i++){
 
             Book bookApiResponse = new Book();
@@ -89,9 +102,8 @@ public class MainController<T> {
             bookApiResponse.setIsbn(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.industryIdentifiers[0].identifier"));
             bookApiResponse.setCollection(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.categories[0]"));
             bookApiResponse.setPage_num(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.pageCount"));
-
-            bookApiResponse.setRating(Float.valueOf(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating") == null ? 0 :
-                     JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating", Float.class)));
+            bookApiResponse.setRating(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating") == null ?  Float.valueOf(0) :
+                     JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating", Float.class));
             bookApiResponse.setNum_ratings(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) + "].volumeInfo.ratingsCount"));
             bookApiResponse.setLink(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.previewLink"));
 
@@ -99,21 +111,13 @@ public class MainController<T> {
             apiBooks.add(bookApiResponse);
         }
 
-        System.out.println("The total length of the book list is "+apiBooks.size());
-        System.out.println("The first book is " + apiBooks.get(0));
-        Book book1 = apiBooks.get(0);
-
         if(principal == null){
             model.addAttribute("username", false);
         }
         model.addAttribute("username",true);
         model.addAttribute("book", utilities.splitBooks(apiBooks));
-        System.out.println(book1.toString());
-        System.out.println("The user we are saving for is "+principal.getName());
 
-        userWishlist wish = new userWishlist(book1, principal.getName());
-        userWishlistRepository.save(wish);
-        return "wishlist";
+        return "wishlist_post";
     }
 
     @RequestMapping("/wishlist")
@@ -233,5 +237,4 @@ public class MainController<T> {
         model.addAttribute("success", "The user was successfully saved to the database");
         return "register";
     }
-
 }

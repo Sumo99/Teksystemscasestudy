@@ -1,7 +1,9 @@
 package com.teksystems.library;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -16,9 +18,7 @@ public class Book {
     @Id
     public int id;
 
-    @JsonProperty("volumeInfo.title")
     public String title;
-
     public String isbn;
     public String cover;
     public String description;
