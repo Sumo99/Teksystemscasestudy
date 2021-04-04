@@ -11,5 +11,5 @@ public interface BookRepository extends JpaRepository<Book, Integer> {
     List<Book> findBookByDescriptionContains(String query);
     @Query("SELECT b from Book b join userWishlist u on b.title = u.title")
     List<Book> getAllBy();
-
+    List<Book> findBookByTitle(String title);
 }

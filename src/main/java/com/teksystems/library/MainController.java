@@ -21,18 +21,18 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import javax.validation.*;
 import java.security.Principal;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
-public class MainController<T> {
+public class MainController {
 
-    private BookRepository bookRepository;
-    private AmazonRepository amz;
-    private UserRepository userRepository;
-    private userWishlistRepository userWishlistRepository;
+    private final BookRepository bookRepository;
+    private final AmazonRepository amz;
+    private final UserRepository userRepository;
+    private final userWishlistRepository userWishlistRepository;
 
     @Autowired
     MainController(BookRepository br, AmazonRepository amz, UserRepository userRepository,
@@ -63,6 +63,7 @@ public class MainController<T> {
                                 @RequestParam String cover, @RequestParam String description, @RequestParam(required = false) String collection,
                                 @RequestParam Float rating, @RequestParam(required = false) Integer num_ratings,
                                 @RequestParam(required = false) Integer page_num, @RequestParam String publisher, Principal principal){
+        System.out.println("I have been invoked for the title " + title);
         Book userBook = new Book();
         userBook.setLink(link);
         userBook.setRating(rating);
@@ -74,6 +75,9 @@ public class MainController<T> {
         userBook.setPublisher(publisher);
         userBook.setPage_num(page_num);
         userBook.setCover(cover);
+        System.out.println("The book that has been constructed is "+ userBook.toString());
+        System.out.println("The username is ");
+        System.out.println(principal.getName());
         userWishlistRepository.save(new userWishlist(userBook, principal.getName()));
         return new RedirectView("wishlist");
     }
@@ -95,27 +99,27 @@ public class MainController<T> {
         for(int i = 0; i< length; i++){
 
             Book bookApiResponse = new Book();
-            bookApiResponse.setTitle(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.title"));
-            bookApiResponse.setDescription(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i)+ "].volumeInfo.description"));
-            bookApiResponse.setPublisher(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.publisher"));
-            bookApiResponse.setCover(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.imageLinks.smallThumbnail"));
-            bookApiResponse.setIsbn(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.industryIdentifiers[0].identifier"));
-            bookApiResponse.setCollection(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.categories[0]"));
-            bookApiResponse.setPage_num(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.pageCount"));
-            bookApiResponse.setRating(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating") == null ?  Float.valueOf(0) :
-                     JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) +"].volumeInfo.averageRating", Float.class));
-            bookApiResponse.setNum_ratings(JsonPath.using(configuration).parse(apiResult).read("$.items[" + String.valueOf(i) + "].volumeInfo.ratingsCount"));
-            bookApiResponse.setLink(JsonPath.using(configuration).parse(apiResult).read("$.items["+ String.valueOf(i) + "].volumeInfo.previewLink"));
+            bookApiResponse.setTitle(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i +"].volumeInfo.title"));
+            bookApiResponse.setDescription(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i + "].volumeInfo.description"));
+            bookApiResponse.setPublisher(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i +"].volumeInfo.publisher"));
+            bookApiResponse.setCover(JsonPath.using(configuration).parse(apiResult).read("$.items["+ i + "].volumeInfo.imageLinks.smallThumbnail"));
+            bookApiResponse.setIsbn(JsonPath.using(configuration).parse(apiResult).read("$.items["+ i + "].volumeInfo.industryIdentifiers[0].identifier"));
+            bookApiResponse.setCollection(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i +"].volumeInfo.categories[0]"));
+            bookApiResponse.setPage_num(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i +"].volumeInfo.pageCount"));
+            bookApiResponse.setRating(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i +"].volumeInfo.averageRating") == null ?  Float.valueOf(0) :
+                    JsonPath.using(configuration).parse(apiResult).read("$.items[" + i +"].volumeInfo.averageRating", Float.class));
+            bookApiResponse.setNum_ratings(JsonPath.using(configuration).parse(apiResult).read("$.items[" + i + "].volumeInfo.ratingsCount"));
+            bookApiResponse.setLink(JsonPath.using(configuration).parse(apiResult).read("$.items["+ i + "].volumeInfo.previewLink"));
 
-            System.out.println(bookApiResponse.toString());
             apiBooks.add(bookApiResponse);
         }
 
-        if(principal == null){
-            model.addAttribute("username", false);
-        }
+        Map<Boolean, List<Book>> results = apiBooks.stream().collect(Collectors.partitioningBy(book1 ->  bookRepository.findBookByTitle(book1.getTitle()).size() > 0));
+        System.out.println("The list of matching books is "+results.get(Boolean.TRUE));
+        model.addAttribute("apiMatchingBooks",utilities.splitBooks(results.get(Boolean.TRUE)));
+        model.addAttribute("restBooks",utilities.splitBooks(results.get(Boolean.FALSE)));
+
         model.addAttribute("username",true);
-        model.addAttribute("book", utilities.splitBooks(apiBooks));
 
         return "wishlist_post";
     }
@@ -143,8 +147,8 @@ public class MainController<T> {
         for(Book book : matchingBooks){
             List<userWishlist> titleMatch =
                     allBooks.stream()
-                    .filter(a -> a.getTitle().equals(book.getTitle()))
-                    .collect(Collectors.toList());
+                            .filter(a -> a.getTitle().equals(book.getTitle()))
+                            .collect(Collectors.toList());
             allBooks.removeAll(titleMatch);
         }
         List<List<userWishlist>> splitWishlist = utilities.splitUsers(allBooks);
@@ -179,7 +183,7 @@ public class MainController<T> {
 
 
     @RequestMapping("/login")
-    public String login(String error,Model model){
+    public String login(){
         return "login";
     }
 
@@ -210,19 +214,19 @@ public class MainController<T> {
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public String addUser(@Valid Users users, BindingResult bindingResult, Model model){
-        String errorMsg = "";
+        StringBuilder errorMsg = new StringBuilder();
         if(bindingResult.hasErrors()){
             System.out.println("The user has entered invalid data!");
             for (Object object: bindingResult.getAllErrors()){
                 if(object instanceof FieldError) {
                     FieldError fieldError = (FieldError) object;
 
-                    errorMsg += fieldError.getDefaultMessage() +"\n";
+                    errorMsg.append(fieldError.getDefaultMessage()).append("\n");
                 }
 
             }
             System.out.println("The user validation errors are "+errorMsg);
-            model.addAttribute("error",errorMsg);
+            model.addAttribute("error", errorMsg.toString());
             return "register";
         }
         if(userRepository.findByUsername(users.getUsername()) != null){

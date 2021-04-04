@@ -37,6 +37,9 @@
             position: relative;
             top: 200px;
         }
+        .matching{
+            background-color: greenyellow;
+        }
     </style>
 </head>
 <body>
@@ -56,7 +59,29 @@
 </div>
 <div class="main">
     <h1>Here are all of the books that match your query</h1>
-    <div class="row" th:each="bookSet : ${book}">
+    <div class="row matching" th:each="bookSet : ${apiMatchingBooks}">
+        <div th:each="Book : ${bookSet}" class="col-lg-3 book" >
+            <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}" class="book-link"></a>
+            <a th:href="${Book.getLink()}">
+                <img th:src="${Book.getCover()} + ${fullString}" height="200" width="130" class="book-image">
+            </a>
+            <form action="/addbook" method="post">
+                <input type="hidden" name="title" th:value="${Book.getTitle()}">
+                <input type="hidden" name="isbn" th:value="${Book.getIsbn()}">
+                <input type="hidden" name="cover" th:value="${Book.getCover()}">
+                <input type="hidden" name="description" th:value="${Book.getDescription()}">
+                <input type="hidden" name="rating" th:value="${Book.getRating()}">
+                <input type="hidden" name="link" th:value="${Book.getLink()}">
+                <input type="hidden" name="page_num" th:value="${Book.getPage_num()}">
+                <input type="hidden" name="publisher" th:value="${Book.getPublisher()}">
+                <input type="hidden" name="collection" th:value="${Book.getCollection()}">
+                <input type="hidden" name="num_ratings" th:value="${Book.getNum_ratings()}">
+                <input type="submit" th:value="|Add ${Book.getTitle()} |">
+            </form>
+        </div>
+    </div>
+
+    <div class="row" th:each="bookSet : ${restBooks}">
         <div th:each="Book : ${bookSet}" class="col-lg-3 book" >
             <a th:text="${Book.getTitle()}" th:href="${Book.getLink()}" class="book-link"></a>
             <a th:href="${Book.getLink()}">
