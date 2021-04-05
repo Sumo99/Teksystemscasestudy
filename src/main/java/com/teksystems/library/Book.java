@@ -13,6 +13,7 @@ import java.sql.Date;
 @Data
 @Entity
 @Table(name = "mroonga_books" )
+@NoArgsConstructor
 
 public class Book {
     @Id
@@ -31,5 +32,8 @@ public class Book {
     public Integer num_ratings;
     public String username;
 
+    public Book(String title){
+        this.title = title;
+    }
 
 }
