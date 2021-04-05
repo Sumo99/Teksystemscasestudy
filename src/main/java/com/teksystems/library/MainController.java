@@ -157,6 +157,15 @@ public class MainController {
 
     @RequestMapping("/Recomended")
     public String recomended(Principal principal, Model model){
+       List<userWishlist> books = userWishlistRepository.findAllByUsername(principal.getName());
+        RestTemplate restTemplate = new RestTemplate();
+
+        for (userWishlist book : books){
+            String url = "http://localhost:5000/book/"+utilities.encodeValue(book.getDescription() == null ? "" : book.getDescription());
+            System.out.println(url);
+           String apiResult = restTemplate.getForObject(url, String.class);
+           System.out.println(apiResult);
+        }
         if(principal == null){
             model.addAttribute("username", false);
         }
