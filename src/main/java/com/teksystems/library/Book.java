@@ -1,7 +1,5 @@
 package com.teksystems.library;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,6 +11,7 @@ import java.sql.Date;
 @Data
 @Entity
 @Table(name = "mroonga_books" )
+@NoArgsConstructor
 
 public class Book {
     @Id
@@ -31,5 +30,8 @@ public class Book {
     public Integer num_ratings;
     public String username;
 
+    public Book(String title){
+        this.title = title;
+    }
 
 }
