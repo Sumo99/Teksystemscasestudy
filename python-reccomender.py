@@ -67,12 +67,10 @@ def recommend(title, desc):
     tfidf_desc_matrix = tf.transform(desc)
 
     # Calculating the similarity measures based on Cosine Similarity
-    sg = cosine_similarity(tfidf_matrix, tfidf_matrix)
     sg_desc = cosine_similarity(tfidf_matrix, tfidf_desc_matrix)
     
     sig_desc = list(enumerate(sg_desc))
     sig_desc = sorted(sig_desc, key=lambda x: x[1], reverse=True)
-    print(sig_desc)
     sig_desc = sig_desc[0:5]
     book_indices = [i[0] for i in sig_desc]
     rec_desc = data[['title']].iloc[book_indices]
@@ -80,24 +78,8 @@ def recommend(title, desc):
     # Get the index corresponding to original_title
        
     idx = indices[title]
-    print("The original title is")
-    print(idx)
-
-# Get the pairwsie similarity scores 
-    sig = list(enumerate(sg[idx]))
-# Sort the books
-    sig = sorted(sig, key=lambda x: x[1], reverse=True)
-# Scores of the 5 most similar books 
-    sig = sig[1:6]
-# Book indicies
-    movie_indices = [i[0] for i in sig]
-   
-    # Top 5 book recommendation
-    rec = data[['title']].iloc[movie_indices]
-       
-    # It reads the top 5 recommend book url and print the images
     
-    print(rec)
+    
     print("According to the description alone here the top picks")
     print(rec_desc)
 recommend("Norwegian Wood", "Toru, a quiet and preternaturally serious young college student in Tokyo, is devoted to Naoko, a beautiful and introspective young woman, but their mutual passion is marked by the tragic death of their best friend years before. Toru begins to adapt to campus life and the loneliness and isolation he faces there, but Naoko finds the pressures and responsibilities of life unbearable. As she retreats further into her own world, Toru finds himself reaching out to others and drawn to a fiercely independent and sexually liberated young woman.A magnificent blending of the music, the mood, and the ethos that was the sixties with the story of one college student's romantic coming of age, Norwegian Wood brilliantly recaptures a young man's first, hopeless, and heroic love.")
