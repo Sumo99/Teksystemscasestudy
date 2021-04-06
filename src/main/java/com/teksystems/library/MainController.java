@@ -155,6 +155,12 @@ public class MainController {
         model.addAttribute("matchingBooks", splitWishlist);
     }
 
+    @RequestMapping(value = "/delete_book", method = RequestMethod.POST)
+    public RedirectView deleteBook(@RequestParam Integer id){
+        userWishlistRepository.deleteById(id);
+        return new RedirectView("wishlist");
+    }
+
     @RequestMapping("/Recomended")
     public String recomended(Principal principal, Model model){
        List<userWishlist> books = userWishlistRepository.findAllByUsername(principal.getName());

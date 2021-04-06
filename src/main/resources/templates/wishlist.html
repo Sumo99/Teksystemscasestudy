@@ -37,6 +37,10 @@
             position: relative;
             top: 200px;
         }
+        .submit-form{
+            position: relative;
+            left: 300px;
+        }
     </style>
 </head>
 <body>
@@ -72,6 +76,10 @@
                 <a th:href="${Book.getLink()}">
                     <img th:src="${Book.getCover()} " height="200" width="130" class="book-image">
                 </a>
+            <form action="/delete_book" method="post">
+                <input type="hidden" name="id" th:value="${Book.getId()}">
+                <input type="submit" class="submit-form" th:value="|Delete ${Book.getTitle()}|">
+            </form>
         </div>
     </div>
 </div>
