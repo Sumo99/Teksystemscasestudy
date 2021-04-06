@@ -90,9 +90,11 @@ public class MainController {
         String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book,String.class);
         List<Book> apiBooks = new ArrayList<>();
 
-        List<Book> matchingBooks = bookRepository.getAllBy();
+        List<userWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
         List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
-        List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
+        List<userWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
+        List<List<userWishlist>> splitBooks = utilities.splitUsers(allUserMatch);
+
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
         int length = JsonPath.parse(apiResult).read("$.items.length()");
@@ -128,30 +130,26 @@ public class MainController {
     public String wishlist(Principal principal, Model model){
         if(principal == null){
             model.addAttribute("username", false);
+            return "wishlist";
         }
 
-        List<Book> matchingBooks = bookRepository.getAllBy();
+        List<userWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
         List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
+        List<userWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
+        List<List<userWishlist>> splitBooks = utilities.splitUsers(allUserMatch);
 
-        List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
         model.addAttribute("username",true);
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
         return "wishlist";
     }
 
-    private void renderWishlist(Model model, List<Book> matchingBooks, List<userWishlist> allBooks, List<List<Book>> splitBooks) {
+    private void renderWishlist(Model model, List<userWishlist> matchingBooks, List<userWishlist> allBooks, List<List<userWishlist>> splitBooks) {
         model.addAttribute("book", splitBooks);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
 
-        for(Book book : matchingBooks){
-            List<userWishlist> titleMatch =
-                    allBooks.stream()
-                            .filter(a -> a.getTitle().equals(book.getTitle()))
-                            .collect(Collectors.toList());
-            allBooks.removeAll(titleMatch);
-        }
-        List<List<userWishlist>> splitWishlist = utilities.splitUsers(allBooks);
+        Map<Boolean, List<userWishlist>> results = allBooks.stream().collect(Collectors.partitioningBy(matchingBooks::contains));
+        List<List<userWishlist>> splitWishlist = utilities.splitUsers(results.get(false));
         model.addAttribute("matchingBooks", splitWishlist);
     }
 

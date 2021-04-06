@@ -66,6 +66,11 @@
             <a th:href="${Book.getLink()}">
                 <img th:src="${Book.getCover()} + ${fullString}" height="200" width="130" class="book-image">
             </a>
+            <form action="/delete_book" method="post">
+                <input type="hidden" name="id" th:value="${Book.getId()}">
+                <input type="submit" class="submit-form" th:value="|Delete ${Book.getTitle()}|">
+            </form>
+
         </div>
     </div>
     <h1 class="unavailable-books">These books are not available at any library.</h1>
