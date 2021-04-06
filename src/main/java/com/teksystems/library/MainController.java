@@ -33,14 +33,16 @@ public class MainController {
     private final AmazonRepository amz;
     private final UserRepository userRepository;
     private final userWishlistRepository userWishlistRepository;
+    private final LibraryCardRepository libraryCardRepository;
 
     @Autowired
     MainController(BookRepository br, AmazonRepository amz, UserRepository userRepository,
-                   userWishlistRepository userWishlistRepository){
+                   userWishlistRepository userWishlistRepository, LibraryCardRepository libraryCardRepository){
         this.userRepository = userRepository;
         this.bookRepository = br;
         this.amz = amz;
         this.userWishlistRepository = userWishlistRepository;
+        this.libraryCardRepository = libraryCardRepository;
     }
 
     @Bean
@@ -55,7 +57,34 @@ public class MainController {
             return "index";
         }
         model.addAttribute("username",true);
+
+        List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
+        List<List<Book>> booksByRow = utilities.splitBooks(allBooks);
+
+        model.addAttribute("Books",booksByRow);
+        model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
+
         return "index";
+
+    }
+
+    @RequestMapping(value = "/alteruser", method = RequestMethod.POST)
+    public RedirectView alterUser(Principal principal, @RequestParam String email, @RequestParam String password){
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        Users usertoEdit = userRepository.findByUsername(principal.getName());
+        System.out.println("The password is " + password);
+
+        if(email.equals("") && password.equals(""))
+            return new RedirectView("settings");
+        if(!email.equals("")){
+            usertoEdit.setEmail(email);
+        }
+        if(!password.equals("")) {
+            usertoEdit.setPassword(bCryptPasswordEncoder.encode(password));
+        }
+
+        userRepository.save(usertoEdit);
+        return new RedirectView("settings");
     }
 
     @RequestMapping(value = "/addbook", method = RequestMethod.POST)
@@ -80,6 +109,13 @@ public class MainController {
         System.out.println(principal.getName());
         userWishlistRepository.save(new userWishlist(userBook, principal.getName()));
         return new RedirectView("wishlist");
+    }
+
+    @RequestMapping(value = "/addcard", method = RequestMethod.POST)
+    public RedirectView addCard(Principal principal, @RequestParam String id, @RequestParam String county, @RequestParam String password){
+        Users requester = userRepository.findByUsername(principal.getName());
+        libraryCardRepository.save(new LibraryCard(id,requester,password, county));
+        return new RedirectView("settings");
     }
 
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
@@ -218,7 +254,10 @@ public class MainController {
     }
 
     @RequestMapping("/settings")
-    public String settings(){
+    public String settings(Model model){
+        System.out.println("There are this many library cards " + libraryCardRepository.findAll().size());
+        model.addAttribute("allCards",libraryCardRepository.findAll());
+
         return "setting";
     }
 
