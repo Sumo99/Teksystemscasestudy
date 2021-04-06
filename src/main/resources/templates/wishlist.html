@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Books</title>
+    <title>Wishlist</title>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
@@ -37,6 +37,10 @@
             position: relative;
             top: 200px;
         }
+        .submit-form{
+            position: relative;
+            left: 300px;
+        }
     </style>
 </head>
 <body>
@@ -62,6 +66,11 @@
             <a th:href="${Book.getLink()}">
                 <img th:src="${Book.getCover()} + ${fullString}" height="200" width="130" class="book-image">
             </a>
+            <form action="/delete_book" method="post">
+                <input type="hidden" name="id" th:value="${Book.getId()}">
+                <input type="submit" class="submit-form" th:value="|Delete ${Book.getTitle()}|">
+            </form>
+
         </div>
     </div>
     <h1 class="unavailable-books">These books are not available at any library.</h1>
@@ -72,6 +81,10 @@
                 <a th:href="${Book.getLink()}">
                     <img th:src="${Book.getCover()} " height="200" width="130" class="book-image">
                 </a>
+            <form action="/delete_book" method="post">
+                <input type="hidden" name="id" th:value="${Book.getId()}">
+                <input type="submit" class="submit-form" th:value="|Delete ${Book.getTitle()}|">
+            </form>
         </div>
     </div>
 </div>

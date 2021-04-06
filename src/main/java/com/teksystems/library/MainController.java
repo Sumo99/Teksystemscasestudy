@@ -33,14 +33,16 @@ public class MainController {
     private final AmazonRepository amz;
     private final UserRepository userRepository;
     private final userWishlistRepository userWishlistRepository;
+    private final LibraryCardRepository libraryCardRepository;
 
     @Autowired
     MainController(BookRepository br, AmazonRepository amz, UserRepository userRepository,
-                   userWishlistRepository userWishlistRepository){
+                   userWishlistRepository userWishlistRepository, LibraryCardRepository libraryCardRepository){
         this.userRepository = userRepository;
         this.bookRepository = br;
         this.amz = amz;
         this.userWishlistRepository = userWishlistRepository;
+        this.libraryCardRepository = libraryCardRepository;
     }
 
     @Bean
@@ -55,7 +57,34 @@ public class MainController {
             return "index";
         }
         model.addAttribute("username",true);
+
+        List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
+        List<List<Book>> booksByRow = utilities.splitBooks(allBooks);
+
+        model.addAttribute("Books",booksByRow);
+        model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
+
         return "index";
+
+    }
+
+    @RequestMapping(value = "/alteruser", method = RequestMethod.POST)
+    public RedirectView alterUser(Principal principal, @RequestParam String email, @RequestParam String password){
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        Users usertoEdit = userRepository.findByUsername(principal.getName());
+        System.out.println("The password is " + password);
+
+        if(email.equals("") && password.equals(""))
+            return new RedirectView("settings");
+        if(!email.equals("")){
+            usertoEdit.setEmail(email);
+        }
+        if(!password.equals("")) {
+            usertoEdit.setPassword(bCryptPasswordEncoder.encode(password));
+        }
+
+        userRepository.save(usertoEdit);
+        return new RedirectView("settings");
     }
 
     @RequestMapping(value = "/addbook", method = RequestMethod.POST)
@@ -82,6 +111,13 @@ public class MainController {
         return new RedirectView("wishlist");
     }
 
+    @RequestMapping(value = "/addcard", method = RequestMethod.POST)
+    public RedirectView addCard(Principal principal, @RequestParam String id, @RequestParam String county, @RequestParam String password){
+        Users requester = userRepository.findByUsername(principal.getName());
+        libraryCardRepository.save(new LibraryCard(id,requester,password, county));
+        return new RedirectView("settings");
+    }
+
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
     public String addBookToWishList(@RequestParam String book, Principal principal, Model model){
         Configuration configuration = Configuration.defaultConfiguration()
@@ -90,9 +126,11 @@ public class MainController {
         String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book,String.class);
         List<Book> apiBooks = new ArrayList<>();
 
-        List<Book> matchingBooks = bookRepository.getAllBy();
+        List<userWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
         List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
-        List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
+        List<userWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
+        List<List<userWishlist>> splitBooks = utilities.splitUsers(allUserMatch);
+
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
         int length = JsonPath.parse(apiResult).read("$.items.length()");
@@ -128,31 +166,33 @@ public class MainController {
     public String wishlist(Principal principal, Model model){
         if(principal == null){
             model.addAttribute("username", false);
+            return "wishlist";
         }
 
-        List<Book> matchingBooks = bookRepository.getAllBy();
+        List<userWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
         List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
+        List<userWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
+        List<List<userWishlist>> splitBooks = utilities.splitUsers(allUserMatch);
 
-        List<List<Book>> splitBooks = utilities.splitBooks(matchingBooks);
         model.addAttribute("username",true);
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
         return "wishlist";
     }
 
-    private void renderWishlist(Model model, List<Book> matchingBooks, List<userWishlist> allBooks, List<List<Book>> splitBooks) {
+    private void renderWishlist(Model model, List<userWishlist> matchingBooks, List<userWishlist> allBooks, List<List<userWishlist>> splitBooks) {
         model.addAttribute("book", splitBooks);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
 
-        for(Book book : matchingBooks){
-            List<userWishlist> titleMatch =
-                    allBooks.stream()
-                            .filter(a -> a.getTitle().equals(book.getTitle()))
-                            .collect(Collectors.toList());
-            allBooks.removeAll(titleMatch);
-        }
-        List<List<userWishlist>> splitWishlist = utilities.splitUsers(allBooks);
+        Map<Boolean, List<userWishlist>> results = allBooks.stream().collect(Collectors.partitioningBy(matchingBooks::contains));
+        List<List<userWishlist>> splitWishlist = utilities.splitUsers(results.get(false));
         model.addAttribute("matchingBooks", splitWishlist);
+    }
+
+    @RequestMapping(value = "/delete_book", method = RequestMethod.POST)
+    public RedirectView deleteBook(@RequestParam Integer id){
+        userWishlistRepository.deleteById(id);
+        return new RedirectView("wishlist");
     }
 
     @RequestMapping("/Recomended")
@@ -214,7 +254,10 @@ public class MainController {
     }
 
     @RequestMapping("/settings")
-    public String settings(){
+    public String settings(Model model){
+        System.out.println("There are this many library cards " + libraryCardRepository.findAll().size());
+        model.addAttribute("allCards",libraryCardRepository.findAll());
+
         return "setting";
     }
 

@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Settings</title>
 </head>
 <body>
+    <div th:insert="navbar_logged_in"></div>
+    <h1>Welcome to settings</h1>
+    <h3>Add a card here</h3>
+    <form action="/addcard" method="post" >
+        <p>Enter an ID here:</p>
+        <input type = "text" name="id">
+        <p>Enter a county here:</p>
+        <input type="text" name = "county">
+        <p>Enter a password here:</p>
+        <input type="text" name = "password">
+        <br>
+        <input type="submit" value="Add a card">
+    </form>
+
+    <div th:each="Card : ${allCards}">
+        <p th:text="|The card id is ${Card.getLibraryCardId()}|"></p>
+        <p th:text="|The card county is ${Card.getCounty()}|"></p>
+        <p th:text="|The card password is ${Card.getPassword()}|"></p>
+    </div>
+    <h3>Edit your user here!</h3>
+    <form action="/alteruser" method="post" >
+        <p>Enter your new password here</p>
+        <input type = "text" name="password">
+        <p>Enter your new email here</p>
+        <input type="text" name = "email">
+        <br>
+        <input type="submit" value="Alter your user">
+    </form>
 
 </body>
 </html>
