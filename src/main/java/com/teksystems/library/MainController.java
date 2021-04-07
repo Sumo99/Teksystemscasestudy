@@ -51,7 +51,7 @@ public class MainController {
     }
 
     @RequestMapping(value = {"/", "/home"})
-    public String index(Principal principal,Model model) {
+    public String index(Principal principal, Model model) {
         if(principal == null){
             model.addAttribute("username", false);
             return "index";
@@ -76,10 +76,10 @@ public class MainController {
 
         if(email.equals("") && password.equals(""))
             return new RedirectView("settings");
-        if(!email.equals("")){
+        else if(!email.equals("")){
             usertoEdit.setEmail(email);
         }
-        if(!password.equals("")) {
+        else if(!password.equals("")) {
             usertoEdit.setPassword(bCryptPasswordEncoder.encode(password));
         }
 
@@ -92,7 +92,6 @@ public class MainController {
                                 @RequestParam String cover, @RequestParam String description, @RequestParam(required = false) String collection,
                                 @RequestParam Float rating, @RequestParam(required = false) Integer num_ratings,
                                 @RequestParam(required = false) Integer page_num, @RequestParam String publisher, Principal principal){
-        System.out.println("I have been invoked for the title " + title);
         Book userBook = new Book();
         userBook.setLink(link);
         userBook.setRating(rating);
@@ -104,9 +103,6 @@ public class MainController {
         userBook.setPublisher(publisher);
         userBook.setPage_num(page_num);
         userBook.setCover(cover);
-        System.out.println("The book that has been constructed is "+ userBook.toString());
-        System.out.println("The username is ");
-        System.out.println(principal.getName());
         userWishlistRepository.save(new userWishlist(userBook, principal.getName()));
         return new RedirectView("wishlist");
     }
@@ -153,7 +149,6 @@ public class MainController {
         }
 
         Map<Boolean, List<Book>> results = apiBooks.stream().collect(Collectors.partitioningBy(book1 ->  bookRepository.findBookByTitle(book1.getTitle()).size() > 0));
-        System.out.println("The list of matching books is "+results.get(Boolean.TRUE));
         model.addAttribute("apiMatchingBooks",utilities.splitBooks(results.get(Boolean.TRUE)));
         model.addAttribute("restBooks",utilities.splitBooks(results.get(Boolean.FALSE)));
 
@@ -213,7 +208,20 @@ public class MainController {
         return "recomended";
     }
 
-    @RequestMapping(value = {"/books","current"})
+    @RequestMapping(value = "/addbooksforuser", method = RequestMethod.POST)
+    public RedirectView addBooksToUser(Principal principal, @RequestParam String title){
+        Users users = userRepository.findByUsername(principal.getName());
+        List<Book> usersBooks = users.getBooks();
+        if(bookRepository.findBookByTitle(title).size() == 0){
+            return new RedirectView("/books");
+        }
+        usersBooks.add(bookRepository.findBookByTitle(title).get(0));
+        users.setBooks(usersBooks);
+        userRepository.save(users);
+        return new RedirectView("/books");
+    }
+
+    @RequestMapping(value = {"/books","/current"})
     public String books(Principal principal,Model model){
 
         if(principal == null){
@@ -221,15 +229,13 @@ public class MainController {
         }
         model.addAttribute("username",true);
 
-        List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
+        List<Book> allBooks = bookRepository.findBooksForUser(principal.getName());
         List<List<Book>> booksByRow = utilities.splitBooks(allBooks);
 
         model.addAttribute("Books",booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
         return "books";
     }
-
-
 
     @RequestMapping("/login")
     public String login(){

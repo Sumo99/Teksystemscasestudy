@@ -41,6 +41,10 @@
             position: relative;
             left: 300px;
         }
+        .add-book{
+            position:relative;
+            left: 300px;
+        }
     </style>
 </head>
 <body>
@@ -69,6 +73,10 @@
             <form action="/delete_book" method="post">
                 <input type="hidden" name="id" th:value="${Book.getId()}">
                 <input type="submit" class="submit-form" th:value="|Delete ${Book.getTitle()}|">
+            </form>
+            <form  action="/addbooksforuser" method="post" class="add-book">
+                <input type="hidden" name="title" th:value="${Book.getTitle()}">
+                <input type="submit" value="Add book"/>
             </form>
 
         </div>
