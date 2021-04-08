@@ -192,15 +192,30 @@ public class MainController {
 
     @RequestMapping("/Recomended")
     public String recomended(Principal principal, Model model){
-       List<userWishlist> books = userWishlistRepository.findAllByUsername(principal.getName());
+
+        List<userWishlist> books = userWishlistRepository.findAllByUsername(principal.getName());
+        Map<Boolean, List<userWishlist>> results = books.stream().collect(Collectors.partitioningBy(book1 ->  bookRepository.findBookByTitle(book1.getTitle()).size() > 0));
+        books = results.get(Boolean.FALSE);
+
         RestTemplate restTemplate = new RestTemplate();
+        List<Book> reccomendedBooks = new ArrayList<>();
 
         for (userWishlist book : books){
+            System.out.println("The loop has been invoked!");
             String url = "http://localhost:5000/book/"+utilities.encodeValue(book.getDescription() == null ? "" : book.getDescription());
             System.out.println(url);
-           String apiResult = restTemplate.getForObject(url, String.class);
-           System.out.println(apiResult);
+            String apiResult = restTemplate.getForObject(url, String.class);
+            System.out.println("The recommended book is " + apiResult);
+            String[] books_strings = apiResult.split("<br>");
+            for(String actualBook : books_strings){
+                  reccomendedBooks.add(bookRepository.findBookByTitle(actualBook).get(0));
+            }
         }
+
+        List<List<Book>> booksToDisplay = utilities.splitBooks(reccomendedBooks);
+        model.addAttribute("Books",booksToDisplay);
+        model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
+
         if(principal == null){
             model.addAttribute("username", false);
         }
@@ -234,6 +249,7 @@ public class MainController {
 
         model.addAttribute("Books",booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
+
         return "books";
     }
 
