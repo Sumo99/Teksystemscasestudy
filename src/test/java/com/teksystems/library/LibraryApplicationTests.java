@@ -1,6 +1,6 @@
 package com.teksystems.library;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test; //cant use jupiter
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
@@ -9,10 +9,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-class LibraryApplicationTests {
+
+public class LibraryApplicationTests {
 
     @Test
-    void contextLoads() {
+    public void contextLoads() {
     }
     @Test
     public void testSplitListBooks(){
