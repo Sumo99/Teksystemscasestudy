@@ -13,7 +13,7 @@ import java.sql.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 
-public class userWishlist {
+public class UserWishlist {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private int id;
@@ -31,7 +31,7 @@ public class userWishlist {
 
     public String username;
 
-    public userWishlist(Book book, String username){
+    public UserWishlist(Book book, String username){
         this.id = book.getId();
         this.title = book.getTitle();
         this.isbn = book.getIsbn();

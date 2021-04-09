@@ -12,6 +12,9 @@ import javax.persistence.ManyToOne;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+/**
+ * The library card class
+ */
 public class LibraryCard {
     @Id
     private String libraryCardId;

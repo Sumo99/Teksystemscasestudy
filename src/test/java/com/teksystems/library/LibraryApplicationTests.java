@@ -29,7 +29,7 @@ class LibraryApplicationTests {
         bookSet.add(new Book("Goat"));
 
         //when
-        List<List<Book>> fromSplitBooks = utilities.splitBooks(bookSet);
+        List<List<Book>> fromSplitBooks = Utilities.splitBooks(bookSet);
 
         //then
         assertEquals(4, fromSplitBooks.get(0).size()); //we expect that the first list is 4 in size
@@ -38,19 +38,19 @@ class LibraryApplicationTests {
     @Test
     public void testSplitListUser(){
         //given
-        List<userWishlist> bookSet= new ArrayList<>();
+        List<UserWishlist> bookSet= new ArrayList<>();
 
-        bookSet.add(new userWishlist(new Book("Oracle security"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("MySQL adminstration"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("Creative writing"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("Discord"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("Guinea pigs"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("Regular pigs"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("Spring boot"), "Sumo99"));
-        bookSet.add(new userWishlist(new Book("Python flask"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Oracle security"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("MySQL adminstration"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Creative writing"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Discord"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Guinea pigs"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Regular pigs"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Spring boot"), "Sumo99"));
+        bookSet.add(new UserWishlist(new Book("Python flask"), "Sumo99"));
 
         //when
-        List<List<userWishlist>> fromSplitBooks = utilities.splitUsers(bookSet);
+        List<List<UserWishlist>> fromSplitBooks = Utilities.splitUsers(bookSet);
 
         //then
         assertEquals(4, fromSplitBooks.get(0).size()); //we expect that the first list is 4 in size
@@ -62,6 +62,6 @@ class LibraryApplicationTests {
         String urlToEncode = "This is a sample book description";
 
         //when and then combined
-        assertEquals("This+is+a+sample+book+description", utilities.encodeValue(urlToEncode));
+        assertEquals("This+is+a+sample+book+description", Utilities.encodeValue(urlToEncode));
     }
 }

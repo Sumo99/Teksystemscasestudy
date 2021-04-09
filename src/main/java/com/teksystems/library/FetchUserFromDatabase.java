@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * This class represets a user from the database
+ */
 class UserPrincipal implements UserDetails{
     private Users users;
 
@@ -55,11 +58,17 @@ class UserPrincipal implements UserDetails{
 }
 
 @Service
-public class fetchUserFromDatabase implements UserDetailsService {
+class fetchUserFromDatabase implements UserDetailsService {
 
     @Autowired
     private UserRepository repository;
 
+    /**
+     * Load the user with a username
+     * @param s
+     * @return
+     * @throws UsernameNotFoundException
+     */
     @Override
     public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
         Users users =repository.findByUsername(s);

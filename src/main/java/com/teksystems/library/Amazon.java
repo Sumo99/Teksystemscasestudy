@@ -6,13 +6,16 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+/**
+ * This class is the amazon comments class, stretch goal
+ */
 @Data
 @Entity
 @Table(name = "amazon_comments")
 public class Amazon {
     @Id
-    public int comment_number;
-    public int overall;
-    public String asin;
+    private int comment_number;
+    private int overall;
+    private String asin;
 
 }

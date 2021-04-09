@@ -13,6 +13,9 @@ import javax.validation.constraints.Size;
 @Data
 @Entity
 
+/**
+ * The users class with validations requirments, expect for password which breaks it every time
+ */
 public class Users {
     @Id
 

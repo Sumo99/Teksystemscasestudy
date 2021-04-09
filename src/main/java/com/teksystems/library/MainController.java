@@ -32,12 +32,20 @@ public class MainController {
     private final BookRepository bookRepository;
     private final AmazonRepository amz;
     private final UserRepository userRepository;
-    private final userWishlistRepository userWishlistRepository;
+    private final UserWishlistRepository userWishlistRepository;
     private final LibraryCardRepository libraryCardRepository;
 
+    /**
+     * Intialize the controller
+     * @param br, the set of all books
+     * @param amz, as a stretch goal, display all comments for a book
+     * @param userRepository, all users
+     * @param userWishlistRepository, all user books
+     * @param libraryCardRepository, all library cards, as a stretch goal also allow the user to order their library cards
+     */
     @Autowired
     MainController(BookRepository br, AmazonRepository amz, UserRepository userRepository,
-                   userWishlistRepository userWishlistRepository, LibraryCardRepository libraryCardRepository){
+                   UserWishlistRepository userWishlistRepository, LibraryCardRepository libraryCardRepository){
         this.userRepository = userRepository;
         this.bookRepository = br;
         this.amz = amz;
@@ -45,11 +53,22 @@ public class MainController {
         this.libraryCardRepository = libraryCardRepository;
     }
 
+    /**
+     * Rest template for getting data from an api
+     * @param builder
+     * @return RestTemplate, access the data
+     */
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder.build();
     }
 
+    /**
+     * return all of the books in the library by rating, limit 100
+     * @param principal
+     * @param model
+     * @return the index page
+     */
     @RequestMapping(value = {"/", "/home"})
     public String index(Principal principal, Model model) {
         if(principal == null){
@@ -59,7 +78,8 @@ public class MainController {
         model.addAttribute("username",true);
 
         List<Book> allBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "rating"));
-        List<List<Book>> booksByRow = utilities.splitBooks(allBooks);
+        List<Book> allBooksLimited = allBooks.subList(0, 100); //limit to 100 books to make page load faster
+        List<List<Book>> booksByRow = Utilities.splitBooks(allBooksLimited);
 
         model.addAttribute("Books",booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
@@ -68,6 +88,13 @@ public class MainController {
 
     }
 
+    /**
+     * Alter the user as an update operation
+     * @param principal
+     * @param email
+     * @param password
+     * @return
+     */
     @RequestMapping(value = "/alteruser", method = RequestMethod.POST)
     public RedirectView alterUser(Principal principal, @RequestParam String email, @RequestParam String password){
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
@@ -87,6 +114,21 @@ public class MainController {
         return new RedirectView("settings");
     }
 
+    /**
+     * Add a book from the google books api
+     * @param title
+     * @param isbn
+     * @param link
+     * @param cover
+     * @param description
+     * @param collection
+     * @param rating
+     * @param num_ratings
+     * @param page_num
+     * @param publisher
+     * @param principal
+     * @return a redirect to the wishlist page
+     */
     @RequestMapping(value = "/addbook", method = RequestMethod.POST)
     public RedirectView addBook(@RequestParam String title, @RequestParam String isbn, @RequestParam(required = false) String link,
                                 @RequestParam String cover, @RequestParam String description, @RequestParam(required = false) String collection,
@@ -103,10 +145,18 @@ public class MainController {
         userBook.setPublisher(publisher);
         userBook.setPage_num(page_num);
         userBook.setCover(cover);
-        userWishlistRepository.save(new userWishlist(userBook, principal.getName()));
+        userWishlistRepository.save(new UserWishlist(userBook, principal.getName()));
         return new RedirectView("wishlist");
     }
 
+    /**
+     * Add a library card with id,county, password. No verification is added
+     * @param principal
+     * @param id
+     * @param county
+     * @param password
+     * @return
+     */
     @RequestMapping(value = "/addcard", method = RequestMethod.POST)
     public RedirectView addCard(Principal principal, @RequestParam String id, @RequestParam String county, @RequestParam String password){
         Users requester = userRepository.findByUsername(principal.getName());
@@ -114,18 +164,26 @@ public class MainController {
         return new RedirectView("settings");
     }
 
+    /**
+     * Add a book from the google api
+     * @param book
+     * @param principal
+     * @param model
+     * @return the wishlist page again
+     */
+
     @RequestMapping(value = "/wishlist", method = RequestMethod.POST)
     public String addBookToWishList(@RequestParam String book, Principal principal, Model model){
         Configuration configuration = Configuration.defaultConfiguration()
-                .addOptions(Option.SUPPRESS_EXCEPTIONS);
+                .addOptions(Option.SUPPRESS_EXCEPTIONS); //this is to avoid the code breaking if a property is not, ie if the schema changes
         RestTemplate restTemplate = new RestTemplate();
         String apiResult = restTemplate.getForObject("https://www.googleapis.com/books/v1/volumes?q="+book,String.class);
         List<Book> apiBooks = new ArrayList<>();
 
-        List<userWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
-        List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
-        List<userWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
-        List<List<userWishlist>> splitBooks = utilities.splitUsers(allUserMatch);
+        List<UserWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
+        List<UserWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
+        List<UserWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
+        List<List<UserWishlist>> splitBooks = Utilities.splitUsers(allUserMatch);
 
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
 
@@ -149,13 +207,20 @@ public class MainController {
         }
 
         Map<Boolean, List<Book>> results = apiBooks.stream().collect(Collectors.partitioningBy(book1 ->  bookRepository.findBookByTitle(book1.getTitle()).size() > 0));
-        model.addAttribute("apiMatchingBooks",utilities.splitBooks(results.get(Boolean.TRUE)));
-        model.addAttribute("restBooks",utilities.splitBooks(results.get(Boolean.FALSE)));
+        model.addAttribute("apiMatchingBooks", Utilities.splitBooks(results.get(Boolean.TRUE)));
+        model.addAttribute("restBooks", Utilities.splitBooks(results.get(Boolean.FALSE)));
 
         model.addAttribute("username",true);
 
         return "wishlist_post";
     }
+
+    /**
+     * The wishlist page
+     * @param principal
+     * @param model
+     * @return the wishlist page
+     */
 
     @RequestMapping("/wishlist")
     public String wishlist(Principal principal, Model model){
@@ -164,10 +229,10 @@ public class MainController {
             return "wishlist";
         }
 
-        List<userWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
-        List<userWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
-        List<userWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
-        List<List<userWishlist>> splitBooks = utilities.splitUsers(allUserMatch);
+        List<UserWishlist> matchingBooks = userWishlistRepository.getAllBy(principal.getName());
+        List<UserWishlist> allBooks = userWishlistRepository.findAllByUsername(principal.getName());
+        List<UserWishlist> allUserMatch = userWishlistRepository.getAllBy(principal.getName());
+        List<List<UserWishlist>> splitBooks = Utilities.splitUsers(allUserMatch);
 
         model.addAttribute("username",true);
         renderWishlist(model, matchingBooks, allBooks, splitBooks);
@@ -175,44 +240,65 @@ public class MainController {
         return "wishlist";
     }
 
-    private void renderWishlist(Model model, List<userWishlist> matchingBooks, List<userWishlist> allBooks, List<List<userWishlist>> splitBooks) {
+    /**
+     * Private method to refactor out commonalities between the wishlist
+     * @param model
+     * @param matchingBooks
+     * @param allBooks
+     * @param splitBooks
+     */
+    private void renderWishlist(Model model, List<UserWishlist> matchingBooks, List<UserWishlist> allBooks, List<List<UserWishlist>> splitBooks) {
         model.addAttribute("book", splitBooks);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
 
-        Map<Boolean, List<userWishlist>> results = allBooks.stream().collect(Collectors.partitioningBy(matchingBooks::contains));
-        List<List<userWishlist>> splitWishlist = utilities.splitUsers(results.get(false));
+        Map<Boolean, List<UserWishlist>> results = allBooks.stream().collect(Collectors.partitioningBy(matchingBooks::contains));
+        List<List<UserWishlist>> splitWishlist = Utilities.splitUsers(results.get(false));
         model.addAttribute("matchingBooks", splitWishlist);
     }
 
+    /**
+     * Delete a book by id to support full crud operations
+     * @param id
+     * @return
+     */
     @RequestMapping(value = "/delete_book", method = RequestMethod.POST)
     public RedirectView deleteBook(@RequestParam Integer id){
         userWishlistRepository.deleteById(id);
         return new RedirectView("wishlist");
     }
 
+    /**
+     * Reccomend a book in the library that has a similar description
+     * @param principal
+     * @param model
+     * @return
+     */
     @RequestMapping("/Recomended")
     public String recomended(Principal principal, Model model){
 
-        List<userWishlist> books = userWishlistRepository.findAllByUsername(principal.getName());
-        Map<Boolean, List<userWishlist>> results = books.stream().collect(Collectors.partitioningBy(book1 ->  bookRepository.findBookByTitle(book1.getTitle()).size() > 0));
+        List<UserWishlist> books = userWishlistRepository.findAllByUsername(principal.getName());
+        Map<Boolean, List<UserWishlist>> results = books.stream().collect(Collectors.partitioningBy(book1 ->  bookRepository.findBookByTitle(book1.getTitle()).size() > 0));
         books = results.get(Boolean.FALSE);
 
         RestTemplate restTemplate = new RestTemplate();
         List<Book> reccomendedBooks = new ArrayList<>();
 
-        for (userWishlist book : books){
+        for (UserWishlist book : books){
             System.out.println("The loop has been invoked!");
-            String url = "http://localhost:5000/book/"+utilities.encodeValue(book.getDescription() == null ? "" : book.getDescription());
+            String url = "http://localhost:5000/book/"+ Utilities.encodeValue(book.getDescription() == null ? "" : book.getDescription());
             System.out.println(url);
             String apiResult = restTemplate.getForObject(url, String.class);
             System.out.println("The recommended book is " + apiResult);
+            if(apiResult == null){
+                continue; // this means that there is no description, hence we cannot reccomend anything
+            }
             String[] books_strings = apiResult.split("<br>");
             for(String actualBook : books_strings){
                   reccomendedBooks.add(bookRepository.findBookByTitle(actualBook).get(0));
             }
         }
 
-        List<List<Book>> booksToDisplay = utilities.splitBooks(reccomendedBooks);
+        List<List<Book>> booksToDisplay = Utilities.splitBooks(reccomendedBooks);
         model.addAttribute("Books",booksToDisplay);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
 
@@ -223,6 +309,12 @@ public class MainController {
         return "recomended";
     }
 
+    /**
+     * Add a book that the user has checked out. This displays in the /books page
+     * @param principal
+     * @param title
+     * @return
+     */
     @RequestMapping(value = "/addbooksforuser", method = RequestMethod.POST)
     public RedirectView addBooksToUser(Principal principal, @RequestParam String title){
         Users users = userRepository.findByUsername(principal.getName());
@@ -236,6 +328,14 @@ public class MainController {
         return new RedirectView("/books");
     }
 
+    /**
+     * The books page, all of the library books that a user has checked out. Not to be confused with the user wishlist
+     * which can include books not in the library
+     * @param principal
+     * @param model
+     * @return
+     */
+
     @RequestMapping(value = {"/books","/current"})
     public String books(Principal principal,Model model){
 
@@ -245,7 +345,7 @@ public class MainController {
         model.addAttribute("username",true);
 
         List<Book> allBooks = bookRepository.findBooksForUser(principal.getName());
-        List<List<Book>> booksByRow = utilities.splitBooks(allBooks);
+        List<List<Book>> booksByRow = Utilities.splitBooks(allBooks);
 
         model.addAttribute("Books",booksByRow);
         model.addAttribute("fullString","C.GIF&client=hennp&type=xw12&oclc=");
@@ -253,11 +353,22 @@ public class MainController {
         return "books";
     }
 
+    /**
+     * Log the user in
+     * @return
+     */
     @RequestMapping("/login")
     public String login(){
         return "login";
     }
 
+    /**
+     * Search the books by description containing a query
+     * @param search_query
+     * @param model
+     * @param principal
+     * @return
+     */
     @RequestMapping("/search")
     public String search(@RequestParam String search_query, Model model, Principal principal){
         if(principal == null){
@@ -266,7 +377,7 @@ public class MainController {
         model.addAttribute("username",true);
 
         List<Book> matchingBooks = bookRepository.findBookByDescriptionContains(search_query);
-        List<List<Book>> booksByRow = utilities.splitBooks(matchingBooks);
+        List<List<Book>> booksByRow = Utilities.splitBooks(matchingBooks);
 
         model.addAttribute("Search_query",search_query);
         model.addAttribute("Books", booksByRow);
@@ -275,17 +386,33 @@ public class MainController {
         return "books";
     }
 
+    /**
+     * Render the settings
+     * @param model
+     * @param principal
+     * @return
+     */
     @RequestMapping("/settings")
-    public String settings(Model model){
-        System.out.println("There are this many library cards " + libraryCardRepository.findAll().size());
-        model.addAttribute("allCards",libraryCardRepository.findAll());
+    public String settings(Model model, Principal principal){
+        model.addAttribute("allCards",libraryCardRepository.findAllByusers_username(principal.getName()));
 
         return "setting";
     }
 
+    /**
+     * Show the registration page
+     * @return
+     */
     @RequestMapping("/register")
     public String register(){return "register";}
 
+    /**
+     * Add a user with a bcrypted password for security.
+     * @param users
+     * @param bindingResult
+     * @param model
+     * @return
+     */
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public String addUser(@Valid Users users, BindingResult bindingResult, Model model){
         StringBuilder errorMsg = new StringBuilder();

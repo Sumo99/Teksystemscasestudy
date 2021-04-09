@@ -12,6 +12,9 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+/**this class manages the user security
+ *
+ */
 @Configuration
 @EnableWebSecurity
 public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
@@ -23,13 +26,18 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
         this.userDetailsService = userDetailsService;
     }
 
+    /**
+     * This configuration only allows the user to access register, index, login, and search to be accessed.
+     * @param http
+     * @throws Exception
+     */
     @Override
     protected void configure(HttpSecurity http) throws Exception{
         http
                 .csrf()
                 .disable()
                 .authorizeRequests()
-                .antMatchers("/", "/register","/books","/search").permitAll()
+                .antMatchers("/", "/register","/search").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
@@ -45,6 +53,10 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
     }
 
+    /**
+     * Allow decryption of password with bcrypt
+     * @return
+     */
     @Bean
     public AuthenticationProvider authenticationProvider(){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();

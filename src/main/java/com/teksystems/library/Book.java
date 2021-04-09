@@ -18,23 +18,25 @@ import java.sql.Date;
 @NamedNativeQueries({
         @NamedNativeQuery(name = "Book.findBooksForUser", query = "select * from user_books u JOIN mroonga_books m on u.books_id = m.id where users_username = ?1", resultClass = Book.class)
 })
-
+/**
+ * Represents a library book.
+ */
 public class Book {
     @Id
-    public int id;
+    private int id;
 
-    public String title;
-    public String isbn;
-    public String cover;
-    public String description;
-    public String collection;
-    public String link;
-    public Float rating;
-    public Integer page_num;
-    public String publisher;
-    public Date published_date;
-    public Integer num_ratings;
-    public String username;
+    private String title;
+    private String isbn;
+    private String cover;
+    private String description;
+    private String collection;
+    private String link;
+    private Float rating;
+    private Integer page_num;
+    private String publisher;
+    private Date published_date;
+    private Integer num_ratings;
+    private String username;
 
     public Book(String title){
         this.title = title;
