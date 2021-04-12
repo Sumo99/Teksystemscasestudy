@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
 from nltk.corpus import stopwords
-from sklearn.metrics.pairwise import linear_kernel
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.tokenize import RegexpTokenizer
 import nltk
@@ -14,11 +12,13 @@ import random
 from PIL import Image
 import requests
 from io import BytesIO
-import matplotlib.pyplot as plt
 from flask import Flask, redirect, url_for, request
+from sqlalchemy import create_engine 
 # Reading the file
 
-df = pd.read_csv("C:\\Users\\Roy\\Documents\\goodread.csv")
+cnx = create_engine("mysql+pymysql://library:pass@localhost:3306/library").connect()
+
+df = pd.read_sql_table("mroonga_books", cnx)
 #Reading the first five records
 
 def _removeNonAscii(s):
@@ -44,7 +44,7 @@ def remove_html(text):
     html_pattern = re.compile('<.*?>')
     return html_pattern.sub(r'', text)
 # Applying all the functions in description and storing as a cleaned_desc
-df['cleaned_desc'] = df['Desc'].apply(_removeNonAscii)
+df['cleaned_desc'] = df['description'].apply(_removeNonAscii)
 df['cleaned_desc'] = df.cleaned_desc.apply(func = make_lower_case)
 df['cleaned_desc'] = df.cleaned_desc.apply(func = remove_stop_words)
 df['cleaned_desc'] = df.cleaned_desc.apply(func=remove_punctuation)
@@ -81,15 +81,21 @@ def recommend(desc):
     
     print("According to the description alone here the top picks")
     rec_desc = rec_desc["title"]
-    print(rec_desc.to_list())
-    return rec_desc.to_string()
+    return rec_desc.to_list()
 
 app = Flask(__name__)
 
 @app.route('/book/<content>')
 def echo(content):
+    book_contents = ""
+    for item in recommend(content):
+        book_contents = book_contents + item
+        book_contents = book_contents + "<br>"
+    return book_contents
 
-    return recommend(content) 
+@app.route('/book/')
+def empty_description():
+    return ""
 
 if __name__ == "__main__":
     app.run()
