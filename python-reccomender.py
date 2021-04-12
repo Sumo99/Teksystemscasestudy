@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import pandas as pd
-import numpy as np
 from nltk.corpus import stopwords
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.metrics.pairwise import cosine_similarity
